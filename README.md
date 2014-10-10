@@ -2,10 +2,6 @@
 
 Ruby-based web service for speech recognition, using the PocketSphinx gstreamer module.
 
-# Developer Resources
-
-* https://sendgrid.com/blog/create-first-heroku-buildpack/
-
 # Requirements
 
 * Ruby 1.8
@@ -25,13 +21,13 @@ Ruby-based web service for speech recognition, using the PocketSphinx gstreamer 
 
 In cmusphinx/pocketsphinx directory:
 
-  wget http://www.phon.ioc.ee/~tanela/ps_gst.patch
-  patch  -p0 -i ps_gst.patch
+    wget http://www.phon.ioc.ee/~tanela/ps_gst.patch
+     patch  -p0 -i ps_gst.patch
 
 
 Make sure you have GStreamer devevelopment packages installed. In Debian Squeeze:
 
-  apt-get install libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev
+    apt-get install libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev
   
 => MacOS X installer -- http://code.google.com/p/dogvibes/wiki/InstallationGuide
   
@@ -39,15 +35,11 @@ And configure, make, make install as usual.
 
 ## Install Ruby gems: Unicorn and Sinatra, UUID tools, JSON, locale
 
-This assumes you have ruby and rubygems installed.
+This assumes you have bundler installed.
 
-    bundle
+    bundle install
 
-Install ruby-gstreamer package (might vary depending on your distribution):
-  
-  apt-get install libgst-ruby1.8
-
-== Additional tools
+## Additional Language Tools
 
 English GF-based recognizer also need:
 
@@ -58,11 +50,7 @@ English GF-based recognizer also need:
 
 ## Run ruby-pocketsphinx-server
 
-Clone the git repository:
-
-    git clone git://github.com/alumae/ruby-pocketsphinx-server.git
-  
-Before executing, add `/usr/local/lib` to the path where GStreamer plugins are looked for:
+Note: Before executing, add `/usr/local/lib` to the path where GStreamer plugins are looked for:
 
     export GST_PLUGIN_PATH=/usr/local/lib
 
@@ -95,74 +83,70 @@ Response should be:
   }
 
 
-= Configuration
+# Configuration
 
-== Web service
+## Web service
 
 Unicorn configuration is in file unicorn.conf.rb. See http://unicorn.bogomips.org/examples/unicorn.conf.rb for
 more info. 
 
-== Recognizer
+## Recognizer
 
 See conf.yaml
 
-= Using the web service
+# Using the web service
 
 Some of the more advanced examples below are specific to the Estonian configuration.
 
-==Example 1
+## Example 1
 
 Record a sentence to a wav file, in mono (hit Ctrl-C when done speaking):
 
- rec -c 1 sentence.wav
- 
+    rec -c 1 sentence.wav
  
 Send it to the web service:
 
- curl   -X POST --data-binary @sentence.wav -H "Content-Type: audio/x-wav"  http://localhost:8080/recognize
+    curl -X POST --data-binary @sentence.wav -H "Content-Type: audio/x-wav"  http://localhost:8080/recognize
 
 Output (encoded using json, the example uses Estonian models):
 
-  {
-    "status": 0,
-    "hypotheses": [
-      {
-        "utterance": [
-          "t\u00e4na on v\u00e4ljas \u00fcsna ilus ilm"
-        ]
-      }
-    ],
-    "id": "e30f54561135d681599915562d77d240"
-  }
+    {
+      "status": 0,
+      "hypotheses": [
+        {
+          "utterance": [
+            "t\u00e4na on v\u00e4ljas \u00fcsna ilus ilm"
+          ]
+        }
+      ],
+      "id": "e30f54561135d681599915562d77d240"
+    }
  
-== Example 2
+## Example 2
 
 Record a raw file using arecord:
 
- arecord --format=S16_LE  --file-type raw  --channels 1 --rate 16000 > sentence2.raw
+    arecord --format=S16_LE  --file-type raw  --channels 1 --rate 16000 > sentence2.raw
 
 Send it to web service:
  
- curl -X POST --data-binary @sentence2.raw -H "Content-Type: audio/x-raw-int; rate=16000"  http://localhost:8080/recognize
+    curl -X POST --data-binary @sentence2.raw -H "Content-Type: audio/x-raw-int; rate=16000"  http://localhost:8080/recognize
  
-== Example 3
+## Example 3
 
 Record a 5 second audio, pipe it to curl, which streams it directly to web service using PUT (and gets almost instant response):
 
- arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  http://localhost:8080/recognize
- 
- 
-= Support for JSGF grammars
+    arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  http://localhost:8080/recognize
+
+# Support for JSGF grammars
 
 Users can use their own grammars to recognize certain sentences. The grammars should be in JSGF format.
 
 Example JSGF (let's call it robot.jsgf)
 
- #JSGF V1.0;
-  
- grammar robot;
-   
- public <command> = (liigu | mine ) [ ( üks | kaks | kolm | neli | viis ) meetrit ] (edasi | tagasi);
+     #JSGF V1.0;
+     grammar robot;
+     public <command> = (liigu | mine ) [ ( üks | kaks | kolm | neli | viis ) meetrit ] (edasi | tagasi);
  
 NB! Grammars should be in the same charset that the server is using for dictionary, which currently is latin-1 (sorry for that). 
  
@@ -170,68 +154,68 @@ You need to upload the JSGF file to somewhere where the server can fetch it, let
  
 Now, let the server download and compile it:
 
- curl -vv  http://localhost:8080/fetch-lm?url=http://www.example.com/robot.jsgf
+    curl -vv  http://localhost:8080/fetch-lm?url=http://www.example.com/robot.jsgf
 
 This should result in HTTP/1.1 200 OK.
 
 Now you can use the grammar to recognize a sentence that is accepted by the grammar:
 
- arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | \
- curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  http://localhost:8080/recognize?lm=http://www.example.com/robot.jsgf
+    arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | \
+    curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  http://localhost:8080/recognize?lm=http://www.example.com/robot.jsgf
 
 Result:
  
- {
-   "status": 0,
-   "hypotheses": [
      {
-       "utterance": "mine viis meetrit tagasi"
+       "status": 0,
+       "hypotheses": [
+         {
+           "utterance": "mine viis meetrit tagasi"
+         }
+       ],
+       "id": "9e3895e9ee0b5138e73c6fca30f51a58"
      }
-   ],
-   "id": "9e3895e9ee0b5138e73c6fca30f51a58"
- }
 
 If you update the grammar on the server, you need to make the /fetch-jsgf request again, as the server doesn't check for changes every time
 a recognition request is done (for efficiency reasons).
 
-= Support for GF grammars
+# Support for GF grammars
 
 GF (Grammatical Framework) grammars are supported. 
 
 A GF grammar must be compiled into a .pgf file. To upload it to the server, use the fetch-pgf API call, e.g.:
   
-  curl "http://bark.phon.ioc.ee/speech-api/v1/fetch-lm?url=http://kaljurand.github.com/Grammars/grammars/pgf/Calc.pgf&lang=Est"
+    curl "http://bark.phon.ioc.ee/speech-api/v1/fetch-lm?url=http://kaljurand.github.com/Grammars/grammars/pgf/Calc.pgf&lang=Est"
   
 The 'lang' attribute (defaults to 'Est') specifies input languages of the grammar. Many comma-separated languages can be specified, e.g lang=Est,Est2
 
 To recognize with a GF, use similar request as with JSGF, e.g.:
 
-  arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  "http://localhost:8080/recognize?lm=http://kaljurand.github.com/Grammars/grammars/pgf/Calc.pgf
+    arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  "http://localhost:8080/recognize?lm=http://kaljurand.github.com/Grammars/grammars/pgf/Calc.pgf
   
 You can also specify output language(s) that will be used to linearize the raw recognition result, e.g.:
  
- arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  "http://localhost:8080/recognize?lm=http://kaljurand.github.com/Grammars/grammars/pgf/Calc.pgf&output-lang=App"
+    arecord --format=S16_LE --file-type raw --channels 1 --rate 16000 --duration 5 | curl -vv -T - -H "Content-Type: audio/x-raw-int; rate=16000"  "http://localhost:8080/recognize?lm=http://kaljurand.github.com/Grammars/grammars/pgf/Calc.pgf&output-lang=App"
  
 Output:
 
- {
-  "status": 0,
-  "hypotheses": [
-    {
-      "utterance": "viis minutit sekundites",
-      "linearizations": [
+     {
+      "status": 0,
+      "hypotheses": [
         {
-          "lang": "App",
-          "output": "5 ' IN \""
-        },
-        {
-          "lang": "App",
-          "output": "5 min IN s"
+          "utterance": "viis minutit sekundites",
+          "linearizations": [
+            {
+              "lang": "App",
+              "output": "5 ' IN \""
+            },
+            {
+              "lang": "App",
+              "output": "5 min IN s"
+            }
+          ]
         }
-      ]
-    }
-  ],
-  "id": "83486feaca30995401ed4a66951a3f23"
- }
+      ],
+      "id": "83486feaca30995401ed4a66951a3f23"
+     }
   
 Multiple output languages can be used, by using comma-separated values: "..&output-lang=App,App2"
